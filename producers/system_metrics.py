@@ -1,27 +1,27 @@
-import psutil
-import time
-import json
 import os
-import yaml
-from datetime import datetime
-from kafka import KafkaProducer
+import socket
+import time
+import psutil
+import logging
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
-KAFKA_BROKER = "192.168.2.110:9092"
-TOPIC = "system.metrics"
-
-try:
-    with open(CONFIG_PATH) as f:
-        cfg = yaml.safe_load(f)
-        KAFKA_BROKER = cfg.get("kafka", {}).get("broker", KAFKA_BROKER)
-        TOPIC = cfg.get("producers", {}).get("system.metrics", {}).get("topic", TOPIC)
-except Exception:
-    pass
-
-producer = KafkaProducer(
-    bootstrap_servers=KAFKA_BROKER,
-    value_serializer=lambda v: json.dumps(v).encode("utf-8")
+from common.producer import (
+    GracefulShutdown,
+    build_event,
+    build_producer,
+    configure_logging,
+    send_with_retry,
+    shutdown_producer,
 )
+
+
+TOPIC = os.getenv("KAFKA_TOPIC", "system.metrics")
+SAMPLE_INTERVAL = int(os.getenv("SYSTEM_METRICS_INTERVAL", "2"))
+HOST = os.getenv("HOSTNAME", socket.gethostname())
+ENVIRONMENT = os.getenv("ENVIRONMENT", "lab")
+NODE_NAME = os.getenv("NODE_NAME", HOST)
+
+LOGGER = logging.getLogger(__name__)
+
 
 def collect_metrics():
     cpu_per_core = psutil.cpu_percent(interval=1, percpu=True)
@@ -29,47 +29,51 @@ def collect_metrics():
     load = psutil.getloadavg()
 
     return {
-        "event_type": "system.metrics",
-        "timestamp": datetime.utcnow().isoformat(),
-        "host": "dell-node-a",
-        "source": "psutil",
-        "metrics": {
-            "cpu": {
-                "total_percent": sum(cpu_per_core) / len(cpu_per_core),
-                "per_core": cpu_per_core
-            },
-            "memory": {
-                "used_percent": memory.percent,
-                "available_mb": memory.available / (1024 * 1024),
-                "total_mb": memory.total / (1024 * 1024)
-            },
-            "load": {
-                "1m": load[0],
-                "5m": load[1],
-                "15m": load[2]
-            }
+        "cpu": {
+            "total_percent": sum(cpu_per_core) / len(cpu_per_core),
+            "per_core": cpu_per_core,
         },
-        "tags": {
-            "env": "lab",
-            "node": "dell-node-a"
-        }
+        "memory": {
+            "used_percent": memory.percent,
+            "available_mb": memory.available / (1024 * 1024),
+            "total_mb": memory.total / (1024 * 1024),
+        },
+        "load": {
+            "1m": load[0],
+            "5m": load[1],
+            "15m": load[2],
+        },
     }
 
+
 def run():
-    while True:
+    configure_logging()
+    GracefulShutdown.install()
+    producer = build_producer()
+
+    LOGGER.info("system metrics producer started")
+
+    while not GracefulShutdown.stopped:
         try:
-            event = collect_metrics()
+            metrics = collect_metrics()
+            event = build_event(
+                event_type="system.metrics",
+                source="psutil",
+                metrics=metrics,
+                host=HOST,
+                tags={
+                    "env": ENVIRONMENT,
+                    "node": NODE_NAME,
+                },
+            )
+            send_with_retry(producer, TOPIC, event)
+            LOGGER.info("sent system metrics")
+        except Exception:
+            LOGGER.exception("failed sending system metrics")
+        time.sleep(SAMPLE_INTERVAL)
 
-            producer.send(TOPIC, event)
-            producer.flush()
+    shutdown_producer(producer)
 
-            print("sent:", event)
-
-            time.sleep(2)
-
-        except Exception as e:
-            print("error:", e)
-            time.sleep(2)
 
 if __name__ == "__main__":
     run()

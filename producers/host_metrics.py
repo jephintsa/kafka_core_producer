@@ -1,64 +1,69 @@
-import psutil
-import time
-import json
 import os
-import yaml
+import socket
+import time
+import psutil
+import logging
 from datetime import datetime
-from kafka import KafkaProducer
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
-KAFKA_BROKER = "192.168.2.110:9092"
-TOPIC = "host.metrics"
-
-try:
-    with open(CONFIG_PATH) as f:
-        cfg = yaml.safe_load(f)
-        KAFKA_BROKER = cfg.get("kafka", {}).get("broker", KAFKA_BROKER)
-        TOPIC = cfg.get("producers", {}).get("host.metrics", {}).get("topic", TOPIC)
-except Exception:
-    pass
-
-producer = KafkaProducer(
-    bootstrap_servers=KAFKA_BROKER,
-    value_serializer=lambda v: json.dumps(v).encode("utf-8")
+from common.producer import (
+    GracefulShutdown,
+    build_event,
+    build_producer,
+    configure_logging,
+    send_with_retry,
+    shutdown_producer,
 )
+
+
+TOPIC = os.getenv("KAFKA_TOPIC", "host.metrics")
+SAMPLE_INTERVAL = int(os.getenv("HOST_METRICS_INTERVAL", "10"))
+HOST = os.getenv("HOSTNAME", socket.gethostname())
+ENVIRONMENT = os.getenv("ENVIRONMENT", "lab")
+NODE_NAME = os.getenv("NODE_NAME", HOST)
+
+LOGGER = logging.getLogger(__name__)
+
 
 def collect_host():
     boot_time = psutil.boot_time()
     uptime = time.time() - boot_time
 
     return {
-        "event_type": "host.metrics",
-        "timestamp": datetime.utcnow().isoformat(),
-        "host": "dell-node-a",
-        "source": "psutil",
-        "metrics": {
-            "uptime_seconds": uptime,
-            "process_count": len(psutil.pids()),
-            "cpu_cores": psutil.cpu_count(),
-            "load_avg": psutil.getloadavg()
-        },
-        "tags": {
-            "env": "lab",
-            "node": "dell-node-a"
-        }
+        "uptime_seconds": uptime,
+        "process_count": len(psutil.pids()),
+        "cpu_cores": psutil.cpu_count(),
+        "load_avg": psutil.getloadavg(),
     }
 
+
 def run():
-    while True:
+    configure_logging()
+    GracefulShutdown.install()
+    producer = build_producer()
+
+    LOGGER.info("host metrics producer started")
+
+    while not GracefulShutdown.stopped:
         try:
-            event = collect_host()
+            metrics = collect_host()
+            event = build_event(
+                event_type="host.metrics",
+                source="psutil",
+                metrics=metrics,
+                host=HOST,
+                tags={
+                    "env": ENVIRONMENT,
+                    "node": NODE_NAME,
+                },
+            )
+            send_with_retry(producer, TOPIC, event)
+            LOGGER.info("sent host metrics")
+        except Exception:
+            LOGGER.exception("failed sending host metrics")
+        time.sleep(SAMPLE_INTERVAL)
 
-            producer.send(TOPIC, event)
-            producer.flush()
+    shutdown_producer(producer)
 
-            print("sent host metrics")
-
-            time.sleep(10)
-
-        except Exception as e:
-            print("error:", e)
-            time.sleep(10)
 
 if __name__ == "__main__":
     run()

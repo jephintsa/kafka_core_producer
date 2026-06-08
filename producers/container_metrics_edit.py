@@ -1,9 +1,10 @@
+import json
 import os
 import socket
 import time
 from datetime import datetime
+
 import docker
-import logging
 
 from common.producer import (
     GracefulShutdown,
@@ -15,14 +16,11 @@ from common.producer import (
 )
 
 
-TOPIC = os.getenv("KAFKA_TOPIC", "container.metrics")
+KAFKA_TOPIC = os.getenv("KAFKA_TOPIC", "container.metrics")
 SAMPLE_INTERVAL = int(os.getenv("CONTAINER_METRICS_INTERVAL", "5"))
 HOST = os.getenv("HOSTNAME", socket.gethostname())
-ENVIRONMENT = os.getenv("ENVIRONMENT", "lab")
-NODE_NAME = os.getenv("NODE_NAME", HOST)
 
 client = docker.from_env()
-LOGGER = logging.getLogger(__name__)
 
 
 def get_container_stats(container):
@@ -59,7 +57,7 @@ def get_container_stats(container):
         "memory_limit": memory_limit,
         "memory_percent": round(memory_percent, 2),
         "network": stats.get("networks", {}),
-        "timestamp": datetime.utcnow().replace(microsecond=0).isoformat() + "Z",
+        "timestamp": datetime.utcnow().isoformat() + "Z",
     }
 
 
@@ -68,7 +66,7 @@ def run():
     GracefulShutdown.install()
     producer = build_producer()
 
-    LOGGER.info("container metrics producer started")
+    print("🚀 container_metrics_edit producer started")
 
     while not GracefulShutdown.stopped:
         containers = client.containers.list(all=True)
@@ -79,18 +77,18 @@ def run():
                 event = build_event(
                     event_type="container.metrics",
                     source="docker",
-                    metrics=metrics,
-                    host=HOST,
+                    metrics={
+                        "host": HOST,
+                        **metrics,
+                    },
                     tags={
-                        "env": ENVIRONMENT,
-                        "node": NODE_NAME,
                         "container_id": metrics["container_id"],
                         "container_name": metrics["name"],
                     },
                 )
-                send_with_retry(producer, TOPIC, event)
-            except Exception:
-                LOGGER.exception("failed to collect or send metrics for container %s", container.name)
+                send_with_retry(producer, KAFKA_TOPIC, event)
+            except Exception as exc:
+                print(f"[ERROR] {container.name}: {exc}")
 
         time.sleep(SAMPLE_INTERVAL)
 

@@ -1,29 +1,29 @@
-import psutil
-import time
-import json
 import os
-import yaml
-from datetime import datetime
-from kafka import KafkaProducer
+import socket
+import time
+import psutil
+import logging
 
-CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
-KAFKA_BROKER = "192.168.2.110:9092"
-TOPIC = "network.metrics"
-
-try:
-    with open(CONFIG_PATH) as f:
-        cfg = yaml.safe_load(f)
-        KAFKA_BROKER = cfg.get("kafka", {}).get("broker", KAFKA_BROKER)
-        TOPIC = cfg.get("producers", {}).get("network.metrics", {}).get("topic", TOPIC)
-except Exception:
-    pass
-
-producer = KafkaProducer(
-    bootstrap_servers=KAFKA_BROKER,
-    value_serializer=lambda v: json.dumps(v).encode("utf-8")
+from common.producer import (
+    GracefulShutdown,
+    build_event,
+    build_producer,
+    configure_logging,
+    send_with_retry,
+    shutdown_producer,
 )
 
+
+TOPIC = os.getenv("KAFKA_TOPIC", "network.metrics")
+SAMPLE_INTERVAL = int(os.getenv("NETWORK_METRICS_INTERVAL", "2"))
+HOST = os.getenv("HOSTNAME", socket.gethostname())
+ENVIRONMENT = os.getenv("ENVIRONMENT", "lab")
+NODE_NAME = os.getenv("NODE_NAME", HOST)
+
+LOGGER = logging.getLogger(__name__)
+
 last = psutil.net_io_counters()
+
 
 def collect_network():
     global last
@@ -31,45 +31,48 @@ def collect_network():
 
     sent = current.bytes_sent - last.bytes_sent
     recv = current.bytes_recv - last.bytes_recv
-
     last = current
 
     return {
-        "event_type": "network.metrics",
-        "timestamp": datetime.utcnow().isoformat(),
-        "host": "dell-node-a",
-        "source": "psutil",
-        "metrics": {
-            "bytes_sent_per_sec": sent,
-            "bytes_recv_per_sec": recv,
-            "packets_sent": current.packets_sent,
-            "packets_recv": current.packets_recv,
-            "errin": current.errin,
-            "errout": current.errout,
-            "dropin": current.dropin,
-            "dropout": current.dropout
-        },
-        "tags": {
-            "env": "lab",
-            "node": "dell-node-a"
-        }
+        "bytes_sent_per_sec": sent,
+        "bytes_recv_per_sec": recv,
+        "packets_sent": current.packets_sent,
+        "packets_recv": current.packets_recv,
+        "errin": current.errin,
+        "errout": current.errout,
+        "dropin": current.dropin,
+        "dropout": current.dropout,
     }
 
+
 def run():
-    while True:
+    configure_logging()
+    GracefulShutdown.install()
+    producer = build_producer()
+
+    LOGGER.info("network metrics producer started")
+
+    while not GracefulShutdown.stopped:
         try:
-            event = collect_network()
+            metrics = collect_network()
+            event = build_event(
+                event_type="network.metrics",
+                source="psutil",
+                metrics=metrics,
+                host=HOST,
+                tags={
+                    "env": ENVIRONMENT,
+                    "node": NODE_NAME,
+                },
+            )
+            send_with_retry(producer, TOPIC, event)
+            LOGGER.info("sent network metrics")
+        except Exception:
+            LOGGER.exception("failed sending network metrics")
+        time.sleep(SAMPLE_INTERVAL)
 
-            producer.send(TOPIC, event)
-            producer.flush()
+    shutdown_producer(producer)
 
-            print("sent net:", event)
-
-            time.sleep(2)
-
-        except Exception as e:
-            print("error:", e)
-            time.sleep(2)
 
 if __name__ == "__main__":
     run()
