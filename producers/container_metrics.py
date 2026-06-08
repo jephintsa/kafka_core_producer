@@ -1,6 +1,8 @@
 import docker
 import time
 import socket
+import os
+import yaml
 from datetime import datetime
 from kafka import KafkaProducer
 import json
@@ -8,9 +10,20 @@ import json
 # -----------------------------
 # CONFIG
 # -----------------------------
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
 KAFKA_BROKER = "192.168.2.110:9092"
 TOPIC = "container.metrics"
 HOST = socket.gethostname()
+
+try:
+    with open(CONFIG_PATH) as f:
+        cfg = yaml.safe_load(f)
+        KAFKA_BROKER = cfg.get("kafka", {}).get("broker", KAFKA_BROKER)
+        TOPIC = cfg.get("producers", {}).get("container.metrics", {}).get("topic", TOPIC)
+        HOST = cfg.get("node", {}).get("name", HOST)
+except Exception:
+    # fall back to defaults if config missing or invalid
+    pass
 
 client = docker.from_env()
 

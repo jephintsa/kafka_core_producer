@@ -1,0 +1,28 @@
+# Producers shared configuration
+
+kafka:
+  broker: "192.168.2.110:9092"
+
+node:
+  name: "dell-node-a"
+  env: "lab"
+
+producers:
+  container.metrics:
+    topic: "container.metrics"
+    interval: 5
+  system.disk.metrics:
+    topic: "system.disk.metrics"
+    interval: 5
+  host.metrics:
+    topic: "host.metrics"
+    interval: 10
+  network.metrics:
+    topic: "network.metrics"
+    interval: 2
+  process.metrics:
+    topic: "process.metrics"
+    interval: 5
+  system.metrics:
+    topic: "system.metrics"
+    interval: 2

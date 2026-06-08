@@ -1,0 +1,13 @@
+[Unit]
+Description=Telemetry producer - network metrics
+After=network.target
+
+[Service]
+User=youruser
+WorkingDirectory=/path/to/kafka-core
+ExecStart=/usr/bin/python3 producers/network_metrics.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

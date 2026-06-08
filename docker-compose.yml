@@ -1,0 +1,63 @@
+version: '3.8'
+services:
+  host_metrics:
+    build:
+      context: ./producers
+      dockerfile: Dockerfile
+    container_name: host_metrics
+    restart: always
+    command: python3 host_metrics.py
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  system_metrics:
+    build:
+      context: ./producers
+      dockerfile: Dockerfile
+    container_name: system_metrics
+    restart: always
+    command: python3 system_metrics.py
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  disk_metrics:
+    build:
+      context: ./producers
+      dockerfile: Dockerfile
+    container_name: disk_metrics
+    restart: always
+    command: python3 disk_metrics.py
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  network_metrics:
+    build:
+      context: ./producers
+      dockerfile: Dockerfile
+    container_name: network_metrics
+    restart: always
+    command: python3 network_metrics.py
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  process_metrics:
+    build:
+      context: ./producers
+      dockerfile: Dockerfile
+    container_name: process_metrics
+    restart: always
+    command: python3 process_metrics.py
+    environment:
+      - PYTHONUNBUFFERED=1
+
+  container_metrics:
+    build:
+      context: ./producers
+      dockerfile: Dockerfile
+    container_name: container_metrics
+    restart: always
+    command: python3 container_metrics.py
+    environment:
+      - PYTHONUNBUFFERED=1
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock

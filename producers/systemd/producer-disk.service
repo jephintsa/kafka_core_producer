@@ -1,0 +1,13 @@
+[Unit]
+Description=Telemetry producer - disk metrics
+After=network.target
+
+[Service]
+User=youruser
+WorkingDirectory=/path/to/kafka-core
+ExecStart=/usr/bin/python3 producers/disk_metrics.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

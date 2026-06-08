@@ -1,0 +1,13 @@
+[Unit]
+Description=Telemetry producer - system metrics
+After=network.target docker.service
+
+[Service]
+User=youruser
+WorkingDirectory=/path/to/kafka-core
+ExecStart=/usr/bin/python3 producers/system_metrics.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

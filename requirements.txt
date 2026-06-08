@@ -1,0 +1,4 @@
+kafka-python
+psutil
+docker
+PyYAML

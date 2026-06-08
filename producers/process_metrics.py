@@ -1,11 +1,22 @@
 import psutil
 import time
 import json
+import os
+import yaml
 from datetime import datetime
 from kafka import KafkaProducer
 
+CONFIG_PATH = os.path.join(os.path.dirname(__file__), "config.yaml")
 KAFKA_BROKER = "192.168.2.110:9092"
 TOPIC = "process.metrics"
+
+try:
+    with open(CONFIG_PATH) as f:
+        cfg = yaml.safe_load(f)
+        KAFKA_BROKER = cfg.get("kafka", {}).get("broker", KAFKA_BROKER)
+        TOPIC = cfg.get("producers", {}).get("process.metrics", {}).get("topic", TOPIC)
+except Exception:
+    pass
 
 producer = KafkaProducer(
     bootstrap_servers=KAFKA_BROKER,
