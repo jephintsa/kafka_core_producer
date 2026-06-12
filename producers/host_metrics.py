@@ -32,7 +32,9 @@ def collect_host():
         "uptime_seconds": uptime,
         "process_count": len(psutil.pids()),
         "cpu_cores": psutil.cpu_count(),
-        "load_avg": psutil.getloadavg(),
+        "load_1m": psutil.getloadavg()[0],
+        "load_5m": psutil.getloadavg()[1],
+        "load_15m": psutil.getloadavg()[2],
     }
 
 

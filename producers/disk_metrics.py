@@ -29,18 +29,14 @@ def collect_disk():
     io = psutil.disk_io_counters()
 
     return {
-        "disk": {
-            "total_gb": disk.total / (1024**3),
-            "used_gb": disk.used / (1024**3),
-            "free_gb": disk.free / (1024**3),
-            "used_percent": disk.percent,
-        },
-        "io": {
-            "read_bytes": io.read_bytes if io else 0,
-            "write_bytes": io.write_bytes if io else 0,
-            "read_count": io.read_count if io else 0,
-            "write_count": io.write_count if io else 0,
-        },
+        "disk_total_gb": disk.total / (1024**3),
+        "disk_used_gb": disk.used / (1024**3),
+        "disk_free_gb": disk.free / (1024**3),
+        "disk_used_percent": disk.percent,
+        "io_read_bytes": io.read_bytes if io else 0,
+        "io_write_bytes": io.write_bytes if io else 0,
+        "io_read_count": io.read_count if io else 0,
+        "io_write_count": io.write_count if io else 0,
     }
 
 

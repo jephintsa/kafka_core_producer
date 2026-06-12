@@ -29,20 +29,14 @@ def collect_metrics():
     load = psutil.getloadavg()
 
     return {
-        "cpu": {
-            "total_percent": sum(cpu_per_core) / len(cpu_per_core),
-            "per_core": cpu_per_core,
-        },
-        "memory": {
-            "used_percent": memory.percent,
-            "available_mb": memory.available / (1024 * 1024),
-            "total_mb": memory.total / (1024 * 1024),
-        },
-        "load": {
-            "1m": load[0],
-            "5m": load[1],
-            "15m": load[2],
-        },
+        "cpu_total_percent": sum(cpu_per_core) / len(cpu_per_core),
+        "cpu_per_core": cpu_per_core,
+        "memory_used_percent": memory.percent,
+        "memory_available_mb": memory.available / (1024 * 1024),
+        "memory_total_mb": memory.total / (1024 * 1024),
+        "load_1m": load[0],
+        "load_5m": load[1],
+        "load_15m": load[2],
     }
 
 
