@@ -3,6 +3,7 @@ import socket
 import time
 import psutil
 import logging
+from typing import Dict, Any
 
 from common.producer import (
     GracefulShutdown,
@@ -25,7 +26,7 @@ LOGGER = logging.getLogger(__name__)
 last = psutil.net_io_counters()
 
 
-def collect_network():
+def collect_network() -> Dict[str, Any]:
     global last
     current = psutil.net_io_counters()
 
@@ -45,7 +46,7 @@ def collect_network():
     }
 
 
-def run():
+def run() -> None:
     configure_logging()
     GracefulShutdown.install()
     producer = build_producer()
@@ -67,8 +68,8 @@ def run():
             )
             send_with_retry(producer, TOPIC, event)
             LOGGER.info("sent network metrics")
-        except Exception:
-            LOGGER.exception("failed sending network metrics")
+        except Exception as e:
+            LOGGER.exception("failed sending network to network metrics: %s", str(e))
         time.sleep(SAMPLE_INTERVAL)
 
     shutdown_producer(producer)

@@ -3,6 +3,7 @@ import socket
 import time
 import psutil
 import logging
+from typing import List, Dict, Any
 
 from common.producer import (
     GracefulShutdown,
@@ -23,7 +24,7 @@ NODE_NAME = os.getenv("NODE_NAME", HOST)
 LOGGER = logging.getLogger(__name__)
 
 
-def collect_processes():
+def collect_processes() -> Dict[str, Any]:
     processes = []
 
     for p in psutil.process_iter(["pid", "name", "cpu_percent", "memory_percent"]):
@@ -43,7 +44,7 @@ def collect_processes():
     }
 
 
-def run():
+def run() -> None:
     configure_logging()
     GracefulShutdown.install()
     producer = build_producer()
@@ -65,8 +66,8 @@ def run():
             )
             send_with_retry(producer, TOPIC, event)
             LOGGER.info("sent process metrics")
-        except Exception:
-            LOGGER.exception("failed sending process metrics")
+        except Exception as e:
+            LOGGER.exception("failed sending process metrics: %s", str(e))
         time.sleep(SAMPLE_INTERVAL)
 
     shutdown_producer(producer)

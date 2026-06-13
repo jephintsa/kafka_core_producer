@@ -4,6 +4,7 @@ import time
 import psutil
 import logging
 import datetime
+from typing import Dict, Any
 
 from common.producer import (
     GracefulShutdown,
@@ -24,7 +25,7 @@ NODE_NAME = os.getenv("NODE_NAME", HOST)
 LOGGER = logging.getLogger(__name__)
 
 
-def collect_disk():
+def collect_disk() -> Dict[str, Any]:
     disk = psutil.disk_usage("/")
     io = psutil.disk_io_counters()
 
@@ -62,8 +63,8 @@ def run():
             )
             send_with_retry(producer, TOPIC, event)
             LOGGER.info("sent disk metrics")
-        except Exception:
-            LOGGER.exception("failed sending disk metrics")
+        except Exception as e:
+            LOGGER.exception("failed sending disk metrics: %s", str(e))
         time.sleep(SAMPLE_INTERVAL)
 
     shutdown_producer(producer)

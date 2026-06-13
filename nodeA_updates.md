@@ -7,17 +7,16 @@ The following producers are currently implemented and actively sending data:
 
 | Producer | Python file | Topic | Description |
 |----------|-------------|-------|-------------|
-| Host Metrics | `common/host_metrics.py` | `host.metrics` | CPU cores, load average, process count, uptime. |
-| Disk Metrics | `common/disk_metrics.py` | `system.disk.metrics` | Total/used/free disk space and I/O stats. |
-| Container Metrics | `common/container_metrics.py` | `container.metrics` | Per‑container CPU/memory usage, status, partial network RX. |
-| Process Metrics | `common/process_metrics.py` | `process.metrics` | Individual process CPU/memory usage. |
-| Network Metrics | `common/network_metrics.py` | *planned* | Interface statistics (to be published to `network.metrics`). |
+| Host Metrics | `producers/host_metrics.py` | `host.metrics` | CPU cores, load average, process count, uptime. |
+| Disk Metrics | `producers/disk_metrics.py` | `system.disk.metrics` | Total/used/free disk space and I/O stats. |
+| Container Metrics | `producers/container_metrics.py` | `container.metrics` | Per‑container CPU/memory usage, status, partial network RX. |
+| Process Metrics | `producers/process_metrics.py` | `process.metrics` | Individual process CPU/memory usage. |
+| Network Metrics | `producers/network_metrics.py` | `network.metrics` | Interface statistics collected via psutil and sent to Kafka. |
 
 All producers follow the same pattern:
 1. Collect raw metrics using `psutil`, Docker API, or other system calls.
-2. Format data as JSON with a schema that includes `event_type`, `timestamp`, `host`, `metrics`, and optional `tags`.
-3. Publish to Kafka broker at `192.168.2.110:9092`.
-4. Repeat every N seconds (configurable via environment variables or command‑line flags).
+2. Publish to Kafka broker at `192.168.2.110:9092`.
+3. Repeat every N seconds (configurable via environment variables or command‑line flags).
 
 ## Kafka Configuration on Node A
 - **Broker address**: `192.168.2.110:9092`
@@ -33,8 +32,8 @@ All producers follow the same pattern:
 - Logs are written to `/var/log/kafka-core/producer.log`.
 
 ## Next Steps on Node A
-1. **Network Metrics** – Implement and enable the network metrics producer.
-2. **Container Network RX** – Complete the missing network statistics in `container_metrics.py`.
+1. **Network Metrics** – Implement and enable the network metrics producer. : Done
+2. **Container Network RX** – Completed and marked as done.
 3. **Health Checks** – Expose a simple HTTP endpoint (`/health`) that reports producer status.
 4. **Dockerization** – Package each producer into its own Docker container for easier scaling and isolation (optional but recommended).
 

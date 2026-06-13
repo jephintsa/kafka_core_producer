@@ -4,6 +4,7 @@ import time
 import psutil
 import logging
 from datetime import datetime
+from typing import Dict, Any
 
 from common.producer import (
     GracefulShutdown,
@@ -24,7 +25,7 @@ NODE_NAME = os.getenv("NODE_NAME", HOST)
 LOGGER = logging.getLogger(__name__)
 
 
-def collect_host():
+def collect_host() -> Dict[str, Any]:
     boot_time = psutil.boot_time()
     uptime = time.time() - boot_time
 
@@ -38,7 +39,7 @@ def collect_host():
     }
 
 
-def run():
+def run() -> None:
     configure_logging()
     GracefulShutdown.install()
     producer = build_producer()
@@ -60,8 +61,8 @@ def run():
             )
             send_with_retry(producer, TOPIC, event)
             LOGGER.info("sent host metrics")
-        except Exception:
-            LOGGER.exception("failed sending host metrics")
+        except Exception as e:
+            LOGGER.exception("failed sending host metrics: %s", str(e))
         time.sleep(SAMPLE_INTERVAL)
 
     shutdown_producer(producer)
