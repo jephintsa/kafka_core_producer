@@ -5,7 +5,6 @@
 - **`Agg/`** – Aggregation utilities (e.g., `producer.py`) that collect and aggregate metric data.
 - **`common/`** – Shared helpers, including the base `__init__.py`.
 - **`producers/`** – Individual producer modules for specific metrics:
-  - `container_metrics_edit.py`
   - `container_metrics.py`
   - `disk_metrics.py`
   - `host_metrics.py`

@@ -7,7 +7,41 @@
 2. [Current State (Phase 1)](#current-state-phase-1)
 3. [Two-Node Architecture](#two-node-architecture)
 4. [Complete Implementation Roadmap](#complete-implementation-roadmap)
+4. [Complete Implementation Roadmap](#complete-implementation-roadmap)
 5. [Phase-by-Phase Setup Guide](#phase-by-phase-setup-guide)
+
+## Usage Instructions
+
+### Prerequisites
+- Python 3.10+
+- Kafka Broker running at `192.168.2.110:9092` (default)
+
+### Installation
+```bash
+# Create a virtual environment
+python -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### Running Producers
+Each producer can be run independently. You can configure them using environment variables.
+
+Example: Run Host Metrics Producer
+```bash
+export KAFKA_BROKER="192.168.2.110:9092"
+python producers/host_metrics.py
+```
+
+### Configuration
+Most producers use the following environment variables:
+- `KAFKA_BROKER`: Address of the Kafka broker (default: `192.168.2.110:9092`)
+- `ENVIRONMENT`: Deployment environment (e.g., `lab`, `prod`)
+- `NODE_NAME`: Name of the node collecting metrics
+- `<METRIC_TYPE>_INTERVAL`: Sampling interval in seconds (e.g., `HOST_METRICS_INTERVAL`)
+
 6. [Learning Path](#learning-path)
 
 ---
