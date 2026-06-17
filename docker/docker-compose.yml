@@ -1,93 +1,115 @@
 version: '3.8'
+
 services:
-  # 1. Kafka Broker Service (Assuming a local setup for simplicity)
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.2.1
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
   kafka:
-    # Use a stable Kafka image from Bitnami with explicit version to avoid tag issues.
     image: confluentinc/cp-kafka:7.2.1
+    container_name: kafka
+    depends_on:
+      - zookeeper
     ports:
       - "9092:9092"
     environment:
-      # Adjust these based on your actual Kafka cluster configuration
-      KAFKA_CFG_NODE_ID: 1
-      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,SASL_PLAINTEXT://:9093
-      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092,SASL_PLAINTEXT://localhost:9093
-      KAFKA_CFG_SECURITY_PROTOCOL: PLAINTEXT
-    healthcheck:
-      test: ["CMD", "kafka-topics.sh", "--list"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
 
-  # 2. Producer Services (One service per metric type)
+      # Correct modern Kafka config
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+
   container_metrics:
     build:
       context: ..
       dockerfile: docker/Dockerfile
     container_name: container_producer
+    restart: unless-stopped
     depends_on:
       - kafka
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
+      DOCKER_HOST: unix:///var/run/docker.sock
+      KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: container_metrics_topic
-      NETWORK_METRICS_INTERVAL: 5 # Example interval, adjust as needed
-    # The entrypoint script handles the actual execution logic
-    command: /bin/bash ./run_producer.sh container_metrics
+      CONTAINER_METRICS_INTERVAL: 5
+    command: container_metrics
 
   disk_metrics:
     build:
       context: ..
       dockerfile: docker/Dockerfile
     container_name: disk_producer
+    restart: unless-stopped
     depends_on:
       - kafka
     environment:
+      KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: disk_metrics_topic
-      DISK_METRICS_INTERVAL: 10 # Example interval, adjust as needed
-    command: /bin/bash ./run_producer.sh disk_metrics
+      DISK_METRICS_INTERVAL: 10
+    command: disk_metrics
 
   host_metrics:
     build:
       context: ..
       dockerfile: docker/Dockerfile
     container_name: host_producer
+    restart: unless-stopped
     depends_on:
       - kafka
     environment:
+      KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: host_metrics_topic
-      HOST_METRICS_INTERVAL: 15 # Example interval, adjust as needed
-    command: /bin/bash ./run_producer.sh host_metrics
+      HOST_METRICS_INTERVAL: 15
+    command: host_metrics
 
   network_metrics:
     build:
       context: ..
       dockerfile: docker/Dockerfile
     container_name: network_producer
+    restart: unless-stopped
     depends_on:
       - kafka
     environment:
+      KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: network_metrics_topic
-      NETWORK_METRICS_INTERVAL: 5 # Example interval, adjust as needed
-    command: /bin/bash ./run_producer.sh network_metrics
+      NETWORK_METRICS_INTERVAL: 5
+    command: network_metrics
 
   process_metrics:
     build:
       context: ..
       dockerfile: docker/Dockerfile
     container_name: process_producer
+    restart: unless-stopped
     depends_on:
       - kafka
     environment:
+      KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: process_metrics_topic
-      PROCESS_METRICS_INTERVAL: 10 # Example interval, adjust as needed
-    command: /bin/bash ./run_producer.sh process_metrics
+      PROCESS_METRICS_INTERVAL: 10
+    command: process_metrics
 
   system_metrics:
     build:
       context: ..
       dockerfile: docker/Dockerfile
     container_name: system_producer
+    restart: unless-stopped
     depends_on:
       - kafka
     environment:
+      KAFKA_BROKER: kafka:9092
       KAFKA_TOPIC: system_metrics_topic
-      SYSTEM_METRICS_INTERVAL: 15 # Example interval, adjust as needed
-    command: /bin/bash ./run_producer.sh system_metrics
+      SYSTEM_METRICS_INTERVAL: 15
+    command: system_metrics

@@ -12,6 +12,7 @@ def test_build_event():
         host="test-host"
     )
     
+    assert event["version"] == 1
     assert event["event_type"] == "test.event"
     assert event["metrics"]["cpu"] == 50
     assert event["tags"]["env"] == "test"
@@ -27,6 +28,7 @@ def test_build_event_no_optional_args():
         metrics=metrics
     )
     
+    assert event["version"] == 1
     assert event["event_type"] == "test.event"
     assert event["source"] == "test_source"
     assert event["metrics"]["cpu"] == 50

@@ -4,7 +4,7 @@ import os
 import signal
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 
 from kafka import KafkaProducer
 from kafka.errors import KafkaError
@@ -15,6 +15,7 @@ DEFAULT_BROKER = "192.168.2.110:9092"
 DEFAULT_RETRIES = 5
 DEFAULT_BACKOFF_SECONDS = 1
 DEFAULT_LOG_LEVEL = "INFO"
+CONTRACT_VERSION = 1
 
 
 class GracefulShutdown:
@@ -70,9 +71,12 @@ def build_event(
     if tags is None:
         tags = {}
     if timestamp is None:
-        timestamp = datetime.utcnow().replace(microsecond=0).isoformat() + "Z"
+        timestamp = (
+            datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+        )
 
     event = {
+        "version": CONTRACT_VERSION,
         "event_type": event_type,
         "timestamp": timestamp,
         "source": source,
