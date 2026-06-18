@@ -39,7 +39,7 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
       DOCKER_HOST: unix:///var/run/docker.sock
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKER: 192.168.2.110:9092
       KAFKA_TOPIC: container_metrics_topic
       CONTAINER_METRICS_INTERVAL: 5
     command: container_metrics
@@ -53,7 +53,7 @@ services:
     depends_on:
       - kafka
     environment:
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKER: 192.168.2.110:9092
       KAFKA_TOPIC: disk_metrics_topic
       DISK_METRICS_INTERVAL: 10
     command: disk_metrics
@@ -67,7 +67,7 @@ services:
     depends_on:
       - kafka
     environment:
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKER: 192.168.2.110:9092
       KAFKA_TOPIC: host_metrics_topic
       HOST_METRICS_INTERVAL: 15
     command: host_metrics
@@ -81,7 +81,7 @@ services:
     depends_on:
       - kafka
     environment:
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKER: 192.168.2.110:9092
       KAFKA_TOPIC: network_metrics_topic
       NETWORK_METRICS_INTERVAL: 5
     command: network_metrics
@@ -95,7 +95,7 @@ services:
     depends_on:
       - kafka
     environment:
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKER: 192.168.2.110:9092
       KAFKA_TOPIC: process_metrics_topic
       PROCESS_METRICS_INTERVAL: 10
     command: process_metrics
@@ -109,7 +109,7 @@ services:
     depends_on:
       - kafka
     environment:
-      KAFKA_BROKER: kafka:9092
+      KAFKA_BROKER: 192.168.2.110:9092
       KAFKA_TOPIC: system_metrics_topic
       SYSTEM_METRICS_INTERVAL: 15
     command: system_metrics
